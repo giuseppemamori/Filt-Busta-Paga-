@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#b00020">
+<link rel="manifest" href="manifest.webmanifest">
+<title>FILT CGIL Catania - Busta Paga</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f4f4;color:#171717}
+header{background:#b00020;color:white;padding:18px 16px 16px;position:sticky;top:0;z-index:3}
+header strong{font-size:18px;display:block}header small{opacity:.9}
+main{max-width:760px;margin:auto;padding:14px 14px 90px}.card{background:white;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #00000012}
+h2{font-size:21px;margin:5px 0 12px}h3{font-size:16px;margin:8px 0}
+button,.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:700;background:#b00020;color:white;font-size:15px}
+button.secondary{background:#eee;color:#222}button:active{transform:scale(.98)}
+nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;display:flex;justify-content:space-around;padding:8px;z-index:4}
+nav button{background:transparent;color:#555;padding:8px 5px;font-size:12px}nav button.active{color:#b00020}
+label{display:block;font-size:12px;font-weight:700;margin:9px 0 4px;color:#555}
+input,select{width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;background:#fff;font-size:15px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee}.row:last-child{border:0}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:700;background:#eee}
+.ok{background:#e8f7ed;color:#176b35}.warn{background:#fff4d6;color:#805b00}.danger{background:#fde8e8;color:#a50000}
+.day{border:1px solid #ddd;border-radius:14px;padding:12px;margin:10px 0}.daytop{display:flex;justify-content:space-between;align-items:center}
+.muted{color:#666;font-size:13px}.hidden{display:none}.big{font-size:28px;font-weight:800}.kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}.kpi .card{margin:0}
+textarea{width:100%;min-height:60px;border:1px solid #ccc;border-radius:10px;padding:10px}
+</style>
+</head>
+<body>
+<header><strong>FILT CGIL Catania</strong><small>Merci e Logistica · Controllo busta paga</small></header>
+<main>
+<section id="home">
+<div class="card">
+<h2>Busta paga</h2>
+<p class="muted">Carica il PDF o una foto della busta. I dati economici possono essere inseriti o modificati manualmente per il controllo.</p>
+<input id="payslipFile" type="file" accept=".pdf,image/*">
+<div id="fileStatus" class="muted" style="margin-top:9px"></div>
+</div>
+<div class="card">
+<h3>Dati da confrontare</h3>
+<div class="grid">
+<div><label>Straordinario pagato (ore)</label><input id="payOver" type="number" step=".01" value="21"></div>
+<div><label>Notturno pagato (ore)</label><input id="payNight" type="number" step=".01" value="90.5"></div>
+<div><label>Domenica/festivo (ore)</label><input id="paySunHol" type="number" step=".01" value="27.5"></div>
+<div><label>Ore ordinarie</label><input id="payOrd" type="number" step=".01" value="165.5"></div>
+</div>
+<p class="muted">Questi valori sono modificabili: l'app non considera automaticamente un PDF “letto” finché non viene integrato un OCR.</p>
+<button onclick="savePayslip()">Salva dati busta</button>
+</div>
+</section>
+
+<section id="days" class="hidden">
+<div class="card">
+<h2>Giornate lavorate</h2>
+<p class="muted">Inserisci manualmente le giornate. Il diario viene salvato sul dispositivo.</p>
+<div class="grid">
+<div><label>Data</label><input id="dDate" type="date"></div>
+<div><label>Tipo</label><select id="dType">
+<option value="ordinaria">Ordinaria</option><option value="straordinario">Straordinario</option>
+<option value="notturna">Notturna</option><option value="domenicale">Domenicale</option>
+<option value="domenicale_notturna">Domenicale notturna</option><option value="festiva">Festiva</option>
+<option value="riposo">Riposo</option><option value="ferie">Ferie</option><option value="malattia">Malattia</option>
+</select></div>
+</div>
+<div class="grid3">
+<div><label>Entrata</label><input id="dIn" type="time"></div>
+<div><label>Uscita</label><input id="dOut" type="time"></div>
+<div><label>Pausa (min)</label><input id="dBreak" type="number" value="0" min="0"></div>
+</div>
+<div class="grid">
+<div><label>Ore previste</label><input id="dPlan" type="number" step=".01" value="8"></div>
+<div><label>Note</label><input id="dNote" placeholder="es. 2 ore straordinario"></div>
+</div>
+<button onclick="addDay()">+ Aggiungi giornata</button>
+<button class="secondary" onclick="clearDays()">Svuota diario</button>
+</div>
+<div id="dayList"></div>
+</section>
+
+<section id="analysis" class="hidden">
+<div class="card">
+<h2>Analisi</h2>
+<p class="muted">Confronto tra dati della busta e giornate inserite.</p>
+<div id="analysisBox"></div>
+</div>
+<div class="card">
+<h3>Valorizzazione delle maggiorazioni</h3>
+<p class="muted">Stima basata sulle ore del diario e sui valori unitari inseriti per il caso di prova. Non costituisce da sola una prova di errore in busta.</p>
+<div id="moneyBox"></div>
+</div>
+</section>
+
+<section id="report" class="hidden">
+<div class="card">
+<h2>Report</h2>
+<p class="muted">Riepilogo del controllo corrente.</p>
+<div id="reportBox"></div>
+<button onclick="window.print()">Stampa / Salva PDF</button>
+</div>
+</section>
+</main>
+
+<nav>
+<button id="nHome" class="active" onclick="show('home')">🏠<br>Home</button>
+<button id="nDays" onclick="show('days')">📅<br>Giornate</button>
+<button id="nAnalysis" onclick="show('analysis');runAnalysis()">🔎<br>Analizza</button>
+<button id="nReport" onclick="show('report');buildReport()">📄<br>Report</button>
+</nav>
+
+<script>
+const KEY='filtDiaryV3', PAY='filtPayslipV3';
+let days=JSON.parse(localStorage.getItem(KEY)||'[]');
+let pay=JSON.parse(localStorage.getItem(PAY)||'{"over":21,"night":90.5,"sunhol":27.5,"ord":165.5}');
+
+function $(id){return document.getElementById(id)}
+function n(id){return Number($(id).value)||0}
+function savePayslip(){
+ pay={over:n('payOver'),night:n('payNight'),sunhol:n('paySunHol'),ord:n('payOrd')};
+ localStorage.setItem(PAY,JSON.stringify(pay)); alert('Dati busta salvati.');
+}
+function loadPay(){
+ $('payOver').value=pay.over;$('payNight').value=pay.night;$('paySunHol').value=pay.sunhol;$('payOrd').value=pay.ord;
+}
+$('payslipFile').addEventListener('change',e=>{
+ const f=e.target.files[0]; if(f) $('fileStatus').textContent='File selezionato: '+f.name+' · pronto per il controllo manuale.';
+});
+function hours(a,b,br){
+ if(!a||!b)return 0;
+ let x=a.split(':').map(Number),y=b.split(':').map(Number);
+ let m1=x[0]*60+x[1],m2=y[0]*60+y[1]; if(m2<m1)m2+=1440;
+ return Math.max(0,(m2-m1-(Number(br)||0))/60);
+}
+function addDay(){
+ const date=$('dDate').value;if(!date){alert('Inserisci la data.');return}
+ const worked=hours($('dIn').value,$('dOut').value,n('dBreak'));
+ const planned=n('dPlan'), overtime=Math.max(0,worked-planned);
+ days.push({date,type:$('dType').value,inn:$('dIn').value,out:$('dOut').value,br:n('dBreak'),planned,worked,overtime,note:$('dNote').value});
+ days.sort((a,b)=>a.date.localeCompare(b.date));localStorage.setItem(KEY,JSON.stringify(days));renderDays();
+}
+function removeDay(i){days.splice(i,1);localStorage.setItem(KEY,JSON.stringify(days));renderDays();runAnalysis()}
+function clearDays(){if(confirm('Vuoi svuotare tutto il diario?')){days=[];localStorage.setItem(KEY,'[]');renderDays();runAnalysis()}}
+function renderDays(){
+ $('dayList').innerHTML=days.length?days.map((d,i)=>`<div class="day"><div class="daytop"><b>${d.date}</b><button class="secondary" onclick="removeDay(${i})">Elimina</button></div><div class="row"><span>${d.type}</span><b>${d.worked.toFixed(2)} h</b></div><div class="row"><span>Straordinario</span><b>${d.overtime.toFixed(2)} h</b></div><div class="muted">${d.inn||'--'} → ${d.out||'--'} · pausa ${d.br} min${d.note?' · '+d.note:''}</div></div>`).join(''):'<div class="card muted">Nessuna giornata inserita.</div>';
+}
+function totals(){
+ let t={worked:0,ord:0,over:0,night:0,sunhol:0};
+ days.forEach(d=>{
+  t.worked+=d.worked;t.over+=d.overtime;t.ord+=Math.min(d.worked,d.planned);
+  if(d.type==='notturna')t.night+=d.worked;
+  if(d.type==='domenicale'||d.type==='festiva')t.sunhol+=d.worked;
+  if(d.type==='domenicale_notturna'){t.sunhol+=d.worked;t.night+=d.worked}
+ });
+ return t;
+}
+function line(label,a,b){
+ const diff=a-b, cls=Math.abs(diff)<.01?'ok':'warn';
+ return `<div class="row"><span>${label}</span><span><b>${a.toFixed(2)} h</b> / busta ${b.toFixed(2)} h <span class="badge ${cls}">${diff>=0?'+':''}${diff.toFixed(2)} h</span></span></div>`;
+}
+function runAnalysis(){
+ const t=totals();
+ $('analysisBox').innerHTML=`<div class="kpi"><div class="card"><div class="muted">Ore diario</div><div class="big">${t.worked.toFixed(2)}</div></div><div class="card"><div class="muted">Straordinario</div><div class="big">${t.over.toFixed(2)}</div></div></div>
+ ${line('Straordinario',t.over,pay.over)}
+ ${line('Notturno',t.night,pay.night)}
+ ${line('Domenica/festivo',t.sunhol,pay.sunhol)}
+ ${line('Ore ordinarie',t.ord,pay.ord)}
+ <p class="muted">Le differenze sono indicatori di controllo: prima di contestare una busta occorre verificare causali, CCNL applicato, turni, accordi aziendali e dati effettivamente registrati dal datore.</p>`;
+ const rates={notturna:1.71861,domenicale:2.24519,domenicale_notturna:5.40467,festiva:5.40467};
+ let rows=Object.keys(rates).map(k=>{
+  let h=days.filter(d=>d.type===k).reduce((s,d)=>s+d.worked,0), euro=h*rates[k];
+  return `<div class="row"><span>${k.replaceAll('_',' ')}</span><span>${h.toFixed(2)} h × €${rates[k].toFixed(5)} = <b>€${euro.toFixed(2)}</b></span></div>`;
+ }).join('');
+ $('moneyBox').innerHTML=rows+'<div class="row"><b>Totale stima maggiorazioni</b><b>€'+Object.keys(rates).reduce((s,k)=>s+days.filter(d=>d.type===k).reduce((x,d)=>x+d.worked,0)*rates[k],0).toFixed(2)+'</b></div>';
+}
+function buildReport(){
+ runAnalysis();const t=totals();
+ $('reportBox').innerHTML=`<div class="row"><span>Giornate inserite</span><b>${days.length}</b></div>
+ <div class="row"><span>Ore lavorate</span><b>${t.worked.toFixed(2)}</b></div>
+ <div class="row"><span>Straordinario diario</span><b>${t.over.toFixed(2)} h</b></div>
+ <div class="row"><span>Straordinario busta</span><b>${pay.over.toFixed(2)} h</b></div>
+ <div class="row"><span>Notturno diario</span><b>${t.night.toFixed(2)} h</b></div>
+ <div class="row"><span>Notturno busta</span><b>${pay.night.toFixed(2)} h</b></div>
+ <p class="muted">Report di controllo preliminare. I dati del PDF non vengono ancora estratti automaticamente: il file viene acquisito nell'interfaccia, mentre i valori confrontati sono quelli inseriti nei campi della busta.</p>`;
+}
+function show(id){
+ ['home','days','analysis','report'].forEach(x=>$(x).classList.toggle('hidden',x!==id));
+ document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+ const map={home:'nHome',days:'nDays',analysis:'nAnalysis',report:'nReport'};$(map[id]).classList.add('active');
+ if(id==='analysis')runAnalysis();if(id==='report')buildReport();window.scrollTo(0,0);
+}
+loadPay();renderDays();runAnalysis();
+</script>
+</body></html>

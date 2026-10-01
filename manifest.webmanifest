@@ -1,0 +1,9 @@
+{
+  "name":"FILT CGIL Catania - Busta Paga",
+  "short_name":"FILT Busta Paga",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#f4f4f4",
+  "theme_color":"#b00020",
+  "lang":"it"
+}
